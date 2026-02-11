@@ -1,6 +1,6 @@
 # Comms
 
-MCP server that gives [Claude Code](https://docs.anthropic.com/en/docs/claude-code) access to Gmail, Google Calendar, Grain, Google Sheets, and Ashby. Built to power daily email triage, meeting follow-ups, and candidate management from the terminal.
+MCP server that gives [Claude Code](https://docs.anthropic.com/en/docs/claude-code) access to Gmail, Google Calendar, Grain, Google Sheets, Ashby, Slack, Google Drive, and Notion. Built to power daily email triage, meeting follow-ups, and candidate management from the terminal.
 
 ## Setup
 
@@ -17,11 +17,15 @@ cp .env.example .env  # fill in your credentials
 | `GOOGLE_DELEGATED_USER` | Email to impersonate (default: `mel@develophealth.ai`) |
 | `GRAIN_WORKSPACE_API_TOKEN` | Grain workspace API token |
 | `ASHBY_API_KEY` | Ashby API key with `candidates:read`, `candidates:write`, `interviews:read`, `interviews:write` scopes |
+| `SLACK_BOT_TOKEN` | Slack bot token (`xoxb-`) for channel listing |
+| `SLACK_USER_TOKEN` | Slack user token (`xoxp-`) for search, reading, and sending as yourself |
+| `NOTION_API_TOKEN` | Notion internal integration token |
 
 The Google service account needs domain-wide delegation with these scopes:
 - `gmail.readonly`, `gmail.send`, `gmail.compose`, `gmail.modify`
 - `calendar.readonly`
 - `spreadsheets`
+- `drive.readonly`
 
 ### Claude Code configuration
 
@@ -63,6 +67,20 @@ Add to your `.mcp.json`:
 - `list_ashby_archive_reasons` -- rejection reasons
 - `submit_ashby_feedback` -- submit interview scorecard (auto-discovers the pending interview and feedback form)
 - `progress_ashby_candidate` / `reject_ashby_candidate` -- move or reject candidates
+
+### Slack
+- `search_slack` -- search messages across all joined channels
+- `read_slack_thread` -- read a full thread by channel ID and timestamp
+- `list_slack_channels` -- list available channels
+- `send_slack_message` -- post a message or thread reply
+
+### Google Drive
+- `search_drive` -- search files by query (supports Drive search syntax)
+- `read_drive_file` -- read content of Docs, Sheets, and Slides by file ID
+
+### Notion
+- `search_notion` -- search pages and databases by query
+- `read_notion_page` -- read full page content as plain text
 
 ## Slash commands
 
