@@ -22,6 +22,10 @@ SHEETS_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
 ]
 
+DRIVE_SCOPES = [
+    "https://www.googleapis.com/auth/drive.readonly",
+]
+
 
 @dataclass
 class GoogleConfig:
@@ -52,6 +56,25 @@ class GrainConfig:
             "GRAIN_API_BASE_URL", "https://api.grain.com/_/public-api/v2"
         ).rstrip("/")
     )
+
+
+@dataclass
+class SlackConfig:
+    bot_token: str = field(
+        default_factory=lambda: os.environ.get("SLACK_BOT_TOKEN", "")
+    )
+    user_token: str = field(
+        default_factory=lambda: os.environ.get("SLACK_USER_TOKEN", "")
+    )
+
+
+@dataclass
+class NotionConfig:
+    api_token: str = field(
+        default_factory=lambda: os.environ.get("NOTION_API_TOKEN", "")
+    )
+    base_url: str = "https://api.notion.com/v1"
+    api_version: str = "2022-06-28"
 
 
 @dataclass

@@ -10,6 +10,7 @@ mcp = ">=1.26"
 google-api-python-client = ">=2.100"
 google-auth = ">=2.23"
 requests = ">=2.31"
+slack_sdk = ">=3.27"
 
 [build-system]
 requires = ["poetry-core"]

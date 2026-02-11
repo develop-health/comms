@@ -5,7 +5,7 @@ import json
 import logging
 from typing import Any
 
-from ..clients import gmail, calendar, grain, sheets, ashby
+from ..clients import gmail, calendar, grain, sheets, ashby, slack, drive, notion
 
 logger = logging.getLogger(__name__)
 
@@ -440,6 +440,168 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "required": ["application_id", "archive_reason_id"],
         },
     },
+    # --- Slack ---
+    {
+        "name": "search_slack",
+        "description": (
+            "Search Slack messages across all public/joined channels by query. "
+            "Returns channel, sender, timestamp, message text, permalink."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Slack search query",
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results (default 20)",
+                    "default": 20,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "read_slack_thread",
+        "description": "Read a full Slack thread by channel ID and thread timestamp.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "channel_id": {
+                    "type": "string",
+                    "description": "The Slack channel ID",
+                },
+                "thread_ts": {
+                    "type": "string",
+                    "description": "The thread parent message timestamp",
+                },
+            },
+            "required": ["channel_id", "thread_ts"],
+        },
+    },
+    {
+        "name": "list_slack_channels",
+        "description": "List available Slack channels.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of channels to return (default 100)",
+                    "default": 100,
+                },
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "send_slack_message",
+        "description": (
+            "Post a message to a Slack channel. "
+            "Use thread_ts to reply in a thread."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "channel": {
+                    "type": "string",
+                    "description": "Channel ID or name to post to",
+                },
+                "text": {
+                    "type": "string",
+                    "description": "Message text",
+                },
+                "thread_ts": {
+                    "type": "string",
+                    "description": "Thread timestamp to reply to (optional)",
+                    "default": "",
+                },
+            },
+            "required": ["channel", "text"],
+        },
+    },
+    # --- Google Drive ---
+    {
+        "name": "search_drive",
+        "description": (
+            "Search Google Drive files by query (supports Drive search syntax). "
+            "Returns file name, type, modified date, link."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query (plain text or Drive query syntax)",
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results (default 20)",
+                    "default": 20,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "read_drive_file",
+        "description": (
+            "Read content of a Google Doc, Sheet, or Slide by file ID. "
+            "For binary files, returns metadata only."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "file_id": {
+                    "type": "string",
+                    "description": "The Google Drive file ID",
+                },
+            },
+            "required": ["file_id"],
+        },
+    },
+    # --- Notion ---
+    {
+        "name": "search_notion",
+        "description": (
+            "Search Notion pages and databases by query text. "
+            "Returns page title, URL, last edited."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Search query text",
+                },
+                "max_results": {
+                    "type": "integer",
+                    "description": "Maximum number of results (default 20)",
+                    "default": 20,
+                },
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "read_notion_page",
+        "description": (
+            "Read full content of a Notion page by page ID. "
+            "Returns blocks as plain text."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "page_id": {
+                    "type": "string",
+                    "description": "The Notion page ID",
+                },
+            },
+            "required": ["page_id"],
+        },
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -627,6 +789,83 @@ async def handle_reject_ashby_candidate(arguments: dict) -> str:
     return json.dumps(result, indent=2)
 
 
+# --- Slack handlers ---
+
+
+async def handle_search_slack(arguments: dict) -> str:
+    results = await asyncio.to_thread(
+        slack.search_messages,
+        query=arguments["query"],
+        max_results=arguments.get("max_results", 20),
+    )
+    return json.dumps(results, indent=2)
+
+
+async def handle_read_slack_thread(arguments: dict) -> str:
+    results = await asyncio.to_thread(
+        slack.read_thread,
+        channel_id=arguments["channel_id"],
+        thread_ts=arguments["thread_ts"],
+    )
+    return json.dumps(results, indent=2)
+
+
+async def handle_list_slack_channels(arguments: dict) -> str:
+    results = await asyncio.to_thread(
+        slack.list_channels,
+        limit=arguments.get("limit", 100),
+    )
+    return json.dumps(results, indent=2)
+
+
+async def handle_send_slack_message(arguments: dict) -> str:
+    result = await asyncio.to_thread(
+        slack.send_message,
+        channel=arguments["channel"],
+        text=arguments["text"],
+        thread_ts=arguments.get("thread_ts", ""),
+    )
+    return json.dumps(result, indent=2)
+
+
+# --- Google Drive handlers ---
+
+
+async def handle_search_drive(arguments: dict) -> str:
+    results = await asyncio.to_thread(
+        drive.search_files,
+        query=arguments["query"],
+        max_results=arguments.get("max_results", 20),
+    )
+    return json.dumps(results, indent=2)
+
+
+async def handle_read_drive_file(arguments: dict) -> str:
+    result = await asyncio.to_thread(
+        drive.read_file, file_id=arguments["file_id"]
+    )
+    return json.dumps(result, indent=2)
+
+
+# --- Notion handlers ---
+
+
+async def handle_search_notion(arguments: dict) -> str:
+    results = await asyncio.to_thread(
+        notion.search_pages,
+        query=arguments["query"],
+        max_results=arguments.get("max_results", 20),
+    )
+    return json.dumps(results, indent=2)
+
+
+async def handle_read_notion_page(arguments: dict) -> str:
+    result = await asyncio.to_thread(
+        notion.read_page, page_id=arguments["page_id"]
+    )
+    return json.dumps(result, indent=2)
+
+
 # ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
@@ -653,6 +892,14 @@ TOOL_HANDLERS = {
     "submit_ashby_feedback": handle_submit_ashby_feedback,
     "progress_ashby_candidate": handle_progress_ashby_candidate,
     "reject_ashby_candidate": handle_reject_ashby_candidate,
+    "search_slack": handle_search_slack,
+    "read_slack_thread": handle_read_slack_thread,
+    "list_slack_channels": handle_list_slack_channels,
+    "send_slack_message": handle_send_slack_message,
+    "search_drive": handle_search_drive,
+    "read_drive_file": handle_read_drive_file,
+    "search_notion": handle_search_notion,
+    "read_notion_page": handle_read_notion_page,
 }
 
 
