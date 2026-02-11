@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "comms"
+version = "0.1.0"
+description = "MCP server for email triage, calendar, and Grain meeting context"
+packages = [{include = "comms"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+mcp = ">=1.26"
+google-api-python-client = ">=2.100"
+google-auth = ">=2.23"
+requests = ">=2.31"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
