@@ -105,6 +105,31 @@ def read_thread(thread_id: str) -> list[dict]:
     return [_format_message_full(msg) for msg in thread.get("messages", [])]
 
 
+def _build_quoted_thread(service, thread_id: str, reply_to_message_id: str) -> str:
+    """Build quoted text from all messages in the thread up to and including the reply-to message."""
+    thread = service.users().threads().get(
+        userId="me", id=thread_id, format="full"
+    ).execute()
+    messages = thread.get("messages", [])
+
+    quoted_parts = []
+    for msg in messages:
+        if msg["id"] == reply_to_message_id or quoted_parts:
+            # We want all messages up to and including the reply-to message
+            pass
+        headers = msg.get("payload", {}).get("headers", [])
+        msg_from = _header(headers, "From")
+        msg_date = _header(headers, "Date")
+        msg_body = _get_plain_text_body(msg.get("payload", {})).strip()
+        if msg_body:
+            quoted_lines = "\n".join(f"> {line}" for line in msg_body.splitlines())
+            quoted_parts.append(f"On {msg_date}, {msg_from} wrote:\n{quoted_lines}")
+        if msg["id"] == reply_to_message_id:
+            break
+
+    return "\n\n".join(quoted_parts)
+
+
 def draft_email(
     to: str,
     subject: str,
@@ -114,17 +139,12 @@ def draft_email(
 ) -> dict:
     """Create a draft. Returns draftId and message metadata."""
     service = _get_service()
-    message = MIMEText(body)
-    message["to"] = to
-    message["subject"] = subject
-    if cc:
-        message["cc"] = cc
 
-    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    draft_body: dict[str, Any] = {"message": {}}
+    thread_id = None
 
-    draft_body: dict[str, Any] = {"message": {"raw": raw}}
     if reply_to_message_id:
-        # Set threadId so Gmail threads the reply
+        # Fetch original message for threading headers
         orig = service.users().messages().get(
             userId="me", id=reply_to_message_id, format="metadata",
             metadataHeaders=["Subject", "Message-ID"],
@@ -132,15 +152,27 @@ def draft_email(
         thread_id = orig.get("threadId")
         if thread_id:
             draft_body["message"]["threadId"] = thread_id
-        # Set In-Reply-To and References headers
+
+        # Build quoted thread and append to body
+        quoted = _build_quoted_thread(service, thread_id, reply_to_message_id)
+        if quoted:
+            body = body.rstrip() + "\n\n" + quoted
+
+    message = MIMEText(body)
+    message["to"] = to
+    message["subject"] = subject
+    if cc:
+        message["cc"] = cc
+
+    if reply_to_message_id and thread_id:
         orig_headers = orig.get("payload", {}).get("headers", [])
         orig_message_id = _header(orig_headers, "Message-ID")
         if orig_message_id:
             message["In-Reply-To"] = orig_message_id
             message["References"] = orig_message_id
-            # Re-encode with the new headers
-            raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
-            draft_body["message"]["raw"] = raw
+
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    draft_body["message"]["raw"] = raw
 
     draft = service.users().drafts().create(userId="me", body=draft_body).execute()
     return {

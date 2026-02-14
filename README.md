@@ -89,3 +89,6 @@ Pulls your inbox, groups by thread, categorizes as Urgent / Important / Can Wait
 
 ### `/followups` -- Post-meeting follow-ups
 Matches today's calendar events to Grain recordings. For interviews, searches Ashby, summarizes the transcript, and offers to submit feedback and progress/reject the candidate. For other meetings, drafts follow-up emails with action items.
+
+### `/prep` -- Daily meeting prep
+Pulls today's calendar, classifies meetings by prep needed, then gathers context for each selected meeting: recent emails and Slack messages with attendees, related Grain recordings, and suggested talking points.

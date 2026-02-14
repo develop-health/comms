@@ -12,3 +12,4 @@ venv/
 .mcp.json
 .claude/settings.local.json
 .claude-plugin/
+outputs/

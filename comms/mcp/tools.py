@@ -197,6 +197,27 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             "required": ["event_id"],
         },
     },
+    {
+        "name": "update_calendar_event",
+        "description": (
+            "Update a calendar event's description (e.g. to set an agenda). "
+            "Requires calendar.events scope."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "event_id": {
+                    "type": "string",
+                    "description": "The Google Calendar event ID",
+                },
+                "description": {
+                    "type": "string",
+                    "description": "The new description/agenda for the event",
+                },
+            },
+            "required": ["event_id", "description"],
+        },
+    },
     # --- Grain ---
     {
         "name": "list_grain_recordings",
@@ -685,6 +706,15 @@ async def handle_get_calendar_event(arguments: dict) -> str:
     return json.dumps(result, indent=2)
 
 
+async def handle_update_calendar_event(arguments: dict) -> str:
+    result = await asyncio.to_thread(
+        calendar.update_calendar_event,
+        event_id=arguments["event_id"],
+        description=arguments["description"],
+    )
+    return json.dumps(result, indent=2)
+
+
 async def handle_list_grain_recordings(arguments: dict) -> str:
     results = await asyncio.to_thread(
         grain.list_grain_recordings,
@@ -880,6 +910,7 @@ TOOL_HANDLERS = {
     "send_email": handle_send_email,
     "list_calendar_events": handle_list_calendar_events,
     "get_calendar_event": handle_get_calendar_event,
+    "update_calendar_event": handle_update_calendar_event,
     "list_grain_recordings": handle_list_grain_recordings,
     "get_grain_transcript": handle_get_grain_transcript,
     "read_spreadsheet": handle_read_spreadsheet,

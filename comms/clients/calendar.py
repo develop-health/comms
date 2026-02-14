@@ -4,12 +4,13 @@ from datetime import datetime, timedelta
 
 from googleapiclient.discovery import build
 
-from ..config import GoogleConfig, CALENDAR_SCOPES
+from ..config import GoogleConfig, CALENDAR_SCOPES, CALENDAR_WRITE_SCOPES
 
 
-def _get_service():
+def _get_service(write=False):
     config = GoogleConfig()
-    creds = config.get_credentials(CALENDAR_SCOPES)
+    scopes = CALENDAR_WRITE_SCOPES if write else CALENDAR_SCOPES
+    creds = config.get_credentials(scopes)
     return build("calendar", "v3", credentials=creds)
 
 
@@ -64,5 +65,16 @@ def get_calendar_event(event_id: str) -> dict:
     service = _get_service()
     event = service.events().get(
         calendarId="primary", eventId=event_id
+    ).execute()
+    return _format_event(event)
+
+
+def update_calendar_event(event_id: str, description: str) -> dict:
+    """Update a calendar event's description (agenda)."""
+    service = _get_service(write=True)
+    event = service.events().patch(
+        calendarId="primary",
+        eventId=event_id,
+        body={"description": description},
     ).execute()
     return _format_event(event)

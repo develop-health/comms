@@ -18,6 +18,10 @@ CALENDAR_SCOPES = [
     "https://www.googleapis.com/auth/calendar.readonly",
 ]
 
+CALENDAR_WRITE_SCOPES = [
+    "https://www.googleapis.com/auth/calendar.events",
+]
+
 SHEETS_SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
 ]
